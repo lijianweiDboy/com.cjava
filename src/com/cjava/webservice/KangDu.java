@@ -210,7 +210,7 @@ public class KangDu {
 			             String sql2="SELECT TJXMBH FROM TJ_TJJLB where TJBH=(SELECT TJXM  FROM TJ_TJJLMXB WHERE TJZHXM='0697'";//查询出要传的组合项目
 			             ResultSet tjxmbh=sta.executeQuery(sql2);
 			             while(tjxmbh.next()) {
-			            	 
+			            	    System.out.println(tjxmbh);
 			             }
 			             
 			             
