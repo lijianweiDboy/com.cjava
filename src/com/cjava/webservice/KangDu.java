@@ -88,7 +88,7 @@ public class KangDu {
 	 * @throws SQLException 
 	 */
 	public void getResult() throws SQLException, ParseException {
-		 for(int i= 0;i<sampleInfos.size();i++) {
+		 for(int i= 0;i<1;i++) {
 			 Element e = sampleInfos.get(i);
 			 Element Barcode = e.element("Barcode");
 			 Element SampleNo = e.element("SampleNo");
@@ -140,7 +140,7 @@ public class KangDu {
 	             CZY = e3.element("检查人姓名");//检验医生
 	             
 	             if(HLFlag==null) {
-	            	 insertsql= "INSERT INTO futian_user.tj_jyjgb (djlsh,xmbh,xmmc,JG,DW,CKFW,SHR,SHRQ,prompt,CZY) "
+	            	 insertsql= "INSERT INTO tj_jyjgb (djlsh,xmbh,xmmc,JG,DW,CKFW,SHR,SHRQ,prompt,CZY) "
 								+ "VALUES('"+HosBarcode+"','"+
 								SubItemCode.getStringValue()+"','"+
 								ItemName.getStringValue()+"'"+ ",'"+
@@ -154,7 +154,7 @@ public class KangDu {
 	            		 
 	             
 	             try {
-					insertsql= "INSERT INTO futian_user.tj_jyjgb (djlsh,xmbh,xmmc,JG,DW,CKFW,SHR,SHRQ,prompt,CZY) "
+					insertsql= "INSERT INTO tj_jyjgb (djlsh,xmbh,xmmc,JG,DW,CKFW,SHR,SHRQ,prompt,CZY) "
 								+ "VALUES('"+HosBarcode+"','"+SubItemCode.getStringValue()+"','"+ItemName.getStringValue()+"'"
 								+ ",'"+TestResult.getStringValue()+"','"+UnitName.getStringValue()+"','"+ReferenceValue.getStringValue()+"','"+SHR.getStringValue()+"',"
 										+ "'"+dateFormat.format(dateParse.parse(TestTime.getStringValue()))+"','"+HLFlag.getStringValue()+"',"
@@ -164,7 +164,7 @@ public class KangDu {
 					e.printStackTrace();
 				}
 	            	 }
-	             sta.execute("delete futian_user.tj_jyjgb where djlsh='"+HosBarcode+"' and xmbh='"+SubItemCode.getStringValue()+"'");
+	             sta.execute("delete tj_jyjgb where djlsh='"+HosBarcode+"' and xmbh='"+SubItemCode.getStringValue()+"'");
 	             sta.execute(insertsql);
 	             System.out.println("CommonResultTable:"+insertsql);
 	            }else {
@@ -174,9 +174,17 @@ public class KangDu {
            sta.close();
            conn.close();
        }
-       public void complteInsert(String HosBarcode) throws SQLException, ParseException {   
+       public void complteInsert(String HosBarcode) throws SQLException, ParseException {  
+    	       ResultSet hasPeople=sta.executeQuery("SELECT TJ_TJJLB.TJBH,TJ_TJJLB.XH,TJ_TJJLB.TJXMBH,TJ_ZHXM_DT.TJXM,TJ_JGXMDZB.GJC FROM TJ_TJJLB,TJ_ZHXM_DT,TJ_JGXMDZB where TJBH=(SELECT TJBH FROM TJ_TJDJB where DJLSH='"+HosBarcode+"') and TJ_TJJLB.TJXMBH=TJ_ZHXM_DT.BH and TJ_JGXMDZB.TJMXXM=TJ_ZHXM_DT.TJXM ORDER by TJ_TJJLB.TJBH,TJ_TJJLB.TJXMBH DESC") ;
+    	       //System.out.println("SELECT TJ_TJJLB.TJBH,TJ_TJJLB.TJXMBH,TJ_ZHXM_DT.TJXM,TJ_JGXMDZB.GJC FROM TJ_TJJLB,TJ_ZHXM_DT,TJ_JGXMDZB where TJBH=(SELECT TJBH FROM TJ_TJDJB where DJLSH='"+HosBarcode+"') and TJ_TJJLB.TJXMBH=TJ_ZHXM_DT.BH and TJ_JGXMDZB.TJMXXM=TJ_ZHXM_DT.TJXM ORDER by TJ_TJJLB.TJBH,TJ_TJJLB.TJXMBH DESC");    	   
+               Map<Integer,String> name=new HashMap();
+               int i=0;   
+    	       while(hasPeople.next()) { 
+    	       name.put(i++, hasPeople.getString("TJXMBH")); 
+    	       //System.out.println(name.get(i-1));
     		   for(int z= 0;z<CommonResultTable.size();z++) {
     			   Element e3 = CommonResultTable.get(z);
+    			   if(e3.element("SubItemCode").getStringValue().trim().equals(hasPeople.getString("GJC").trim())) {
 		      	   	TestResult= e3.element("TestResult");//康都检验结果
 			             if(TestResult!=null&&TestResult.getStringValue().length()>=1) {
 			             SubItemCode = e3.element("SubItemCode");//康都项目代码
@@ -194,44 +202,53 @@ public class KangDu {
 			             }
 			             SHR = e3.element("审核人姓名");//审核医生
 			             TestTime = e3.element("CreateDate");//检验日期
+			             HLFlag = e3.element("HLFlag");//高低标识
+			             if(UnitName==null) {
+			            	 e3.addElement("UnitName");
+			            	 UnitName = e3.element("UnitName");
+			             }
 			             if(HLFlag==null) {
 			            	 e3.addElement("HLFlag");
 			            	 HLFlag = e3.element("HLFlag");
 			             }
 			             
 			             CZY = e3.element("检查人姓名");//检验医生
-			             //第一步查询这个人登记的组合项目SELECT TJXMBH FROM futian_user.TJ_TJJLB where TJBH='118902' AND TJCS='1' AND LXBH='06'
-			             String sql1="SELECT TJXMBH FROM TJ_TJJLB where TJBH=(SELECT TJBH FROM TJ_TJDJB where DJLSH='"+HosBarcode+"') AND TJCS='1' AND LXBH='06'";//查询出要传的组合项目
-			             ResultSet zhxmbhs=sta.executeQuery(sql1);
-			             String zhxmbh=null;
-			             if(zhxmbhs.next()) {zhxmbh=zhxmbhs.getString("TJXMBH");}
-			             if(zhxmbh!=null){
-			            //第二步查询出组合项中有哪些明细项编号 SELECT TJXM  FROM TJ_TJJLMXB WHERE TJZHXM='0697'
-			             String sql2="SELECT TJXMBH FROM TJ_TJJLB where TJBH=(SELECT TJXM  FROM TJ_TJJLMXB WHERE TJZHXM='0697'";//查询出要传的组合项目
-			             ResultSet tjxmbh=sta.executeQuery(sql2);
-			             while(tjxmbh.next()) {
-			            	    System.out.println(tjxmbh+"121231231231231啊啊阿萨");
+			             
+			             String sql0001="UPDATE TJ_TJJLMXB SET JG = '"+TestResult.getStringValue()+"', JCRQ = '"+dateFormat.format(dateParse.parse(TestTime.getStringValue()))+"', JCYS = '"+SHR.getStringValue()+"', TS = '"+HLFlag.getStringValue()+"', DW = '"+UnitName.getStringValue()+"', CKZ = '"+ReferenceValue.getStringValue()+"' WHERE XH = '"+hasPeople.getString("XH")+"' AND TJXM = '"+hasPeople.getString("TJXM")+"' AND TJZHXM = '"+hasPeople.getString("TJXMBH")+"' ";
+			             System.out.println(sql0001);
+			             conn.createStatement().execute(sql0001);
+			             if(HLFlag.getStringValue().trim().length()>0) {
+			            	 //System.out.println(i+":"+hasPeople.getString("TJXMBH")+":"+name.get(i-1)+":"+name.get(i-2));
+			            	 if(i>=2&&!name.get(i-2).equals(name.get(i-1))) {
+			            		
+			            	   String sql2="update TJ_TJJLB SET ISOVER ='1' , XJ ='"+ItemName.getStringValue()+"'+(SELECT XSNR FROM TJ_TSDZB WHERE CSNR='"+HLFlag.getStringValue()+"')+'"+TestResult.getStringValue()+"'+'"+UnitName.getStringValue()+"', "
+			            	   		+ "JCRQ ='"+dateFormat.format(dateParse.parse(TestTime.getStringValue()))+"' , JCYS ='"+SHR.getStringValue()+"' , CZY ='"+CZY.getStringValue()+"' "
+			            	   				+ "WHERE TJBH ='"+hasPeople.getString("TJBH")+"'"
+			            	   						+ "AND TJCS =1 And TJXMBH='"+hasPeople.getString("TJXMBH")+"'";
+			            	   conn.createStatement().execute(sql2);
+			            	   System.out.println(sql2);
+			            	 }else {
+			            		 String sql2="update TJ_TJJLB SET ISOVER ='1' , XJ ='(replace((SELECT XJ FROM TJ_TJJLB WHERE TJBH ='"+hasPeople.getString("TJBH")+"' AND TJCS =1 And TJXMBH ='"+hasPeople.getString("TJXMBH")+"'),'未见异常',''))+'"+ItemName.getStringValue()+"'+(SELECT XSNR FROM TJ_TSDZB WHERE CSNR='"+HLFlag.getStringValue()+"')+'"+TestResult.getStringValue()+"'+'"+UnitName.getStringValue()+"', "
+					            	   		+ "JCRQ ='"+dateFormat.format(dateParse.parse(TestTime.getStringValue()))+"' , JCYS ='"+SHR.getStringValue()+"' , CZY ='"+CZY.getStringValue()+"' "
+					            	   				+ "WHERE TJBH ='"+hasPeople.getString("TJBH")+"'"
+					            	   						+ "AND TJCS =1 And TJXMBH='"+hasPeople.getString("TJXMBH")+"'";	 
+			            		 conn.createStatement().execute(sql2);
+			            	   System.out.println(sql2);
+			            	 }
+			            	 
+			             }else {
+			            	 if(i>=2&&!name.get(i-2).equals(name.get(i-1))) {
+			            	 String sql2="update TJ_TJJLB SET ISOVER ='1' , XJ ='未见异常', "
+				            	   		+ "JCRQ ='"+dateFormat.format(dateParse.parse(TestTime.getStringValue()))+"' , JCYS ='"+SHR.getStringValue()+"' , CZY ='"+CZY.getStringValue()+"' "
+				            	   				+ "WHERE TJBH ='"+hasPeople.getString("TJBH")+"'"
+				            	   						+ "AND TJCS =1 And TJXMBH='"+hasPeople.getString("TJXMBH")+"'";	 
+			            	 conn.createStatement().execute(sql2);
+			            	 System.out.println(sql2);
+			            	 }
+			             }	   
 			             }
-			             
-			             
-			             
-			             }
-			           //第三步匹配数据，插入表
-			             System.out.println("查询出要传的组合项目:"+sql1);
-			             ResultSet res2=sta.executeQuery(sql1);
-			    		   while(res2.next()) {
-			    			   String  TJBH=res2.getString("TJXMBH");
-			    			   Statement sta1 =conn.createStatement();  
-			        			   String updataSql="UPDATE TJ_TJJLMXB SET JG = '"+TestResult.getStringValue()+"', JCRQ = '"+dateFormat.format(dateParse.parse(TestTime.getStringValue()))+"', JCYS = '"+CZY.getStringValue()+"', TS = '"+HLFlag.getStringValue()+"', DW = '"+UnitName.getStringValue()+"', CKZ = '"+ReferenceValue.getStringValue()+"' WHERE "
-			        			   		+ "XH = "+res2.getString("XH")+" "
-			        			   				+ "AND TJXM = '' ";
-			        			   System.out.println(updataSql);
-                                   
-			    			   //sta.execute(updataSql);
-			    			   
-			    		   }
-					
-					}
+    			   }
+    		   }
     	   }	   
        }
 }
